@@ -302,9 +302,28 @@ def analyze_transits_by_house(natal: Chart, transit: Chart) -> List[HouseTransit
     """Analyze transits organized by natal whole-sign houses (1-12)."""
     house_transits = []
 
+    # Use natal ascendant as the reference for house numbering when analyzing transits.
+    natal_asc_sign = natal.asc_sign_num
+
     for house_num in range(1, 13):
         # Transiting planets that occupy this natal house by whole-sign house numbering:
-        transiting = [p for p in transit.planets.values() if p.house == house_num]
+        transiting = []
+        for p in transit.planets.values():
+            p_house_from_natal = get_house_number_whole_sign(p.sign_num, natal_asc_sign)
+            if p_house_from_natal == house_num:
+                # create a lightweight copy with adjusted house for display/analysis
+                copied = PlanetPosition(
+                    name=p.name,
+                    longitude=p.longitude,
+                    sign=p.sign,
+                    sign_num=p.sign_num,
+                    house=p_house_from_natal,
+                    degree_in_sign=p.degree_in_sign,
+                    is_retrograde=p.is_retrograde,
+                    nakshatra=p.nakshatra,
+                    nakshatra_lord=p.nakshatra_lord
+                )
+                transiting.append(copied)
         natal_in_house = [p for p in natal.planets.values() if p.house == house_num]
 
         # Aspects: drishti from *transiting planets* to *all natal planets* (whole-sign)
@@ -458,7 +477,9 @@ def print_combined_chart_table(natal: Chart, transit: Chart):
         n = natal.planets[pname]
         t_retro = "R" if t.is_retrograde else ""
         n_retro = "R" if n.is_retrograde else ""
-        print(f"{t.name:<11}{t.sign + ' ' + f'{t.degree_in_sign:>5.2f}°':<18}{t.house:<8}{t_retro:<3}    "
+        # compute display house for transit planet using natal ascendant as reference
+        t_house_display = get_house_number_whole_sign(t.sign_num, natal.asc_sign_num)
+        print(f"{t.name:<11}{t.sign + ' ' + f'{t.degree_in_sign:>5.2f}°':<18}{t_house_display:<8}{t_retro:<3}    "
               f"{n.name:<11}{n.sign + ' ' + f'{n.degree_in_sign:>5.2f}°':<18}{n.house:<8}{n.nakshatra:<19}{n_retro:<3}")
 
     print()
